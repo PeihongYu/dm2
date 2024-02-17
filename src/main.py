@@ -24,7 +24,8 @@ ex.logger = logger
 ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 # results_path = os.path.join(dirname(dirname(abspath(__file__))), "results")
-results_path = os.path.join("/scratch/cluster/clw4542/marl_results", "results")
+# results_path = os.path.join("/scratch/cluster/clw4542/marl_results", "results")
+results_path = "/fs/nexus-scratch/peihong/dm2_results"
 
 run_fcns = {
         "run_default": run_default,
@@ -113,9 +114,16 @@ if __name__ == '__main__':
     # add config to sacred
     ex.add_config(config_dict)
 
+    for param in params:
+        if param.startswith("env_args.map_name"):
+            map_name = param.split("=")[1]
+        elif param.startswith("env_args.key"):
+            map_name = param.split("=")[1]
+
     # Save to disk by default for sacred
     logger.info("Saving to FileStorageObserver in results/sacred.")
-    file_obs_path = os.path.join(results_path, "sacred")
+    # file_obs_path = os.path.join(results_path, "sacred")
+    file_obs_path = os.path.join(results_path, f"sacred/{map_name}/{config_dict['name']}")
     ex.observers.append(FileStorageObserver.create(file_obs_path))
 
     ex.run_commandline(params)

@@ -5,6 +5,8 @@ import time
 import threading
 import gc
 import torch as th
+import json
+
 from types import SimpleNamespace as SN
 from utils.logging import Logger
 from utils.timehelper import time_left, time_str
@@ -56,10 +58,24 @@ def run(_run, _config, _log):
     namelist = [args.name, args.env, args.label, *envargs_list, *algargs_list, f"seed={args.seed}", date_time]
     namelist = [name.replace("_", "-") for name in namelist if name is not None]
     args.unique_token = "_".join(namelist) 
+
+    try:
+        map_name = _config["env_args"]["map_name"]
+    except:
+        map_name = _config["env_args"]["key"]
+
     if args.use_tensorboard:
-        tb_logs_direc = os.path.join(args.local_results_path, "tb_logs")
+        # tb_logs_direc = os.path.join(args.local_results_path, "tb_logs")
+        tb_logs_direc = os.path.join(
+            args.local_results_path, "tb_logs", args.env, map_name
+        )
         tb_exp_direc = os.path.join(tb_logs_direc, "{}").format(args.unique_token)
         logger.setup_tb(tb_exp_direc)
+
+        # write config file
+        config_str = json.dumps(vars(args), indent=4, sort_keys=True)
+        with open(os.path.join(tb_exp_direc, "config.json"), "w") as f:
+            f.write(config_str)
 
     # sacred is on by default
     logger.setup_sacred(_run)
@@ -249,7 +265,14 @@ def run_sequential(args, logger):
 
         if args.save_model and (runner.t_env - model_save_time >= args.save_model_interval or model_save_time == 0):
             model_save_time = runner.t_env
-            save_path = os.path.join(args.local_results_path, "models", args.unique_token, str(runner.t_env))
+            try:
+                map_name = args.env_args["map_name"]
+            except:
+                map_name = args.env_args["key"]
+            save_path = os.path.join(
+                args.local_results_path, "models", args.env, map_name, args.unique_token, str(runner.t_env)
+            )
+            # save_path = os.path.join(args.local_results_path, "models", args.unique_token, str(runner.t_env))
             #"results/models/{}".format(unique_token)
             os.makedirs(save_path, exist_ok=True)
             logger.console_logger.info("Saving models to {}".format(save_path))
