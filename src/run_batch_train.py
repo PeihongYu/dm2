@@ -1,16 +1,17 @@
 import subprocess
+import os
 from itertools import product
 from types import SimpleNamespace as SN
 
 
 # Define the maximum number of jobs for each account
 # max_job_nums = [4, 2, 2, 8]
-max_job_nums = [2, 2]
+max_job_nums = [8]
 account_combinations = [
-    # ["nexus", "tron", "medium"],
-    # ["cml-tokekar", "cml-dpart", "cml-medium"],
-    ["cml-tokekar", "cml-dpart", "cml-high"],
-    ["cml-tokekar", "cml-dpart", "cml-high_long"],
+    # ["nexus", "tron", "medium"],      # 2 days, for qmix, 4 jobs max
+    ["cml-tokekar", "cml-dpart", "cml-medium"],     # 3 days, for ippo/dm2, 2 jobs max
+    # ["cml-tokekar", "cml-dpart", "cml-high"],     # 1.5 days, for qmix, 2 jobs max
+    # ["cml-tokekar", "cml-dpart", "cml-high_long"],    # 14 days, for ippo/dm2, 8 jobs max, but actually 2 jobs max due to resources
 ]
 
 # Define the parameters you want to iterate over
@@ -24,7 +25,13 @@ parameters = {
     "seed": [112358, 1285842, 78590, 119527, 122529],
 }
 
-root_dir = "/fs/nexus-scratch/peihong/dm2_results"
+# root_dir = "/fs/nexus-scratch/peihong/dm2_results"
+root_dir = f"/fs/nexus-projects/Guided_MARL/{os.getlogin()}_dm2_results"
+
+if os.getlogin() == "peihong":
+    smac_dir = "/fs/nexus-scratch/peihong/3rdparty/StarCraftII_2410"
+elif os.getlogin() == "manavx96":
+    smac_dir = "/fs/nexus-scratch/manavx96/StarCraftII"
 
 param_names = list(parameters.keys())
 param_values = [v for v in parameters.values()]
@@ -48,10 +55,11 @@ for combo in combinations:
     jobs_num += 1
 
     # Create a unique job script for each combination
+    # note: change time accordingly
     job_script_content = f'''#!/bin/bash
 #SBATCH --job-name={job_name}
 #SBATCH --output={root_dir}/slurm_logs/%x.%j.out
-#SBATCH --time=12:00:00
+#SBATCH --time=38:00:00
 #SBATCH --account={account}
 #SBATCH --partition={partition}
 #SBATCH --qos={qos}
@@ -65,15 +73,16 @@ for combo in combinations:
 # For example, if you need Python, you might load a Python module
 CONDA_BASE=$(conda info --base)
 source $CONDA_BASE/etc/profile.d/conda.sh
-conda activate marl
-export SC2PATH="/fs/nexus-scratch/peihong/3rdparty/StarCraftII_2410"
+conda activate dm2
+export SC2PATH={smac_dir}
 
 # Your Python script with parameters
-srun bash -c "python src/main.py --env-config=sc2 --config=default --alg-config=qmix with env_args.map_name=5m_vs_6m t_max=10050000 --seed={param.seed}"
+srun bash -c "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='env' update_gail=False t_max=10050000 name='ippo' --seed={param.seed}"
 ''' 
 
-# python src/main.py --env-config=sc2 --config=default --alg-config=qmix with env_args.map_name=5m_vs_6m --seed=112358
-# python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type="env" update_gail=False --seed=112358
+# python src/main.py --env-config=sc2 --config=default --alg-config=qmix with env_args.map_name=5m_vs_6m t_max=10050000 name='qmix' --seed=112358
+# python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='env' update_gail=False t_max=10050000 name='ippo' --seed=112358
+# python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 name='dm2' --seed=112358
 
     # Write the job script to a file
     job_script_path = f'{root_dir}/slurm_scripts/submit_job__{job_name}.sh'
