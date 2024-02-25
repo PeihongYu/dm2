@@ -18,7 +18,7 @@ from utils.running_mean_std import RunningMeanStd
 class GailDiscriminator2(nn.Module):
     def __init__(self, args, input_dim, hidden_dim, device, max_buffer_eps=None, 
                  epath=None, agent_idx=None, obs_info=None):
-        super(GailDiscriminator, self).__init__()
+        super(GailDiscriminator2, self).__init__()
         self.args = args
         self.device = device
 
@@ -30,6 +30,14 @@ class GailDiscriminator2(nn.Module):
         self.trunk.train()
 
         self.optimizer = th.optim.Adam(self.trunk.parameters())
+
+        self.dyn_discriminator = nn.Sequential( 
+            nn.Linear(input_dim * 2 - 1, hidden_dim), nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim), nn.Tanh(),
+            nn.Linear(hidden_dim, 1), nn.Sigmoid()).to(device)
+        self.dyn_discriminator.train()
+        self.dyn_optimizer = th.optim.Adam(self.dyn_discriminator.parameters())
+
         self.ret_rms = RunningMeanStd(shape=())
         self.returns = None
         self.obs_info = obs_info
@@ -139,8 +147,47 @@ class GailDiscriminator2(nn.Module):
         (gail_loss + grad_pen).backward()
         self.optimizer.step()
 
+        # update dynamics discriminator
+        pol_obs = th.cat([batch[i]['obs'][:, :-1, :] for i in range(len(batch))]) # shape (batch_size, ep_limit, obs_size)
+        exp_obs = th.cat([expert_batch[i]['obs'][:, :-1, :] for i in range(len(expert_batch))]).to(self.device)
+        # collapse timesteps and episodes dim
+        pol_obs = pol_obs.reshape(-1, pol_obs.shape[-1]) # shape (batch_sizew*ep_limit, pol_obs.shape[-1])
+        exp_obs = exp_obs.reshape(-1, exp_obs.shape[-1])
+
+        pol_obs2 = th.cat([batch[i]['obs'][:, 1:, :] for i in range(len(batch))]) # shape (batch_size, ep_limit, obs_size)
+        exp_obs2 = th.cat([expert_batch[i]['obs'][:, 1:, :] for i in range(len(expert_batch))]).to(self.device)
+        # collapse timesteps and episodes dim
+        pol_obs2 = pol_obs2.reshape(-1, pol_obs2.shape[-1]) # shape (batch_sizew*ep_limit, pol_obs.shape[-1])
+        exp_obs2 = exp_obs2.reshape(-1, exp_obs2.shape[-1])
+
+        pol_actions = th.cat([batch[i]['actions'][:, :-1, :] for i in range(len(batch))])
+        exp_actions = th.cat([expert_batch[i]['actions'][:, :-1, :] for i in range(len(expert_batch))]).to(self.device)
+        pol_actions = pol_actions.reshape(-1, pol_actions.shape[-1]).float() # []
+        exp_actions = exp_actions.reshape(-1, exp_actions.shape[-1]).float()
+
+        policy_in = th.cat([pol_obs, pol_actions, pol_obs2], dim=1)
+        expert_in = th.cat([exp_obs, exp_actions, exp_obs2], dim=1)
+
+        # breakpoint()
+
+        policy_dyn_d = self.dyn_discriminator(policy_in)
+        expert_dyn_d = self.dyn_discriminator(expert_in)
+
+        expert_dyn_loss = F.binary_cross_entropy_with_logits(
+            expert_dyn_d,
+            th.ones(expert_dyn_d.size()).to(self.device))
+        policy_dyn_loss = F.binary_cross_entropy_with_logits(
+            policy_dyn_d,
+            th.zeros(policy_dyn_d.size()).to(self.device))
+
+        gail_dyn_loss = expert_dyn_loss + policy_dyn_loss
+
+        self.dyn_optimizer.zero_grad()
+        gail_dyn_loss.backward()
+        self.dyn_optimizer.step()
+
         return loss / n, grad_norm_all / n, grad_pen_all / n, \
-        policy_disc_pred_all / n, expert_disc_pred_all / n
+        policy_disc_pred_all / n, expert_disc_pred_all / n, gail_dyn_loss.item()
 
     def predict_reward(self, obs, actions=None, gamma=1, update_rms=False):
         if actions is None:
@@ -148,6 +195,7 @@ class GailDiscriminator2(nn.Module):
         else:
             actions = actions.float()
             discrim_input = th.cat([obs, actions], dim=-1)
+            dyn_discrim_input = th.cat([obs, actions, th.roll(obs, -1, 1)], dim=-1)
         with th.no_grad():
             self.eval()
             d = self.trunk(discrim_input)
@@ -160,11 +208,15 @@ class GailDiscriminator2(nn.Module):
                 self.returns = self.returns * gamma + reward
                 self.ret_rms.update(self.returns.cpu().numpy())
 
-            return reward #/ np.sqrt(self.ret_rms.var[0] + 1e-8)
+            weights = self.dyn_discriminator(dyn_discrim_input)
+
+            return reward, weights #/ np.sqrt(self.ret_rms.var[0] + 1e-8)
 
     def save_model(self, path):
         th.save(self.trunk.state_dict(), f"{path}/discriminator_{self.agent_idx}.th")
         th.save(self.optimizer.state_dict(), f"{path}/discriminator_{self.agent_idx}_opt.th")
+        th.save(self.dyn_discriminator.state_dict(), f"{path}/dyn_discriminator_{self.agent_idx}.th")
+        th.save(self.dyn_optimizer.state_dict(), f"{path}/dyn_discriminator_{self.agent_idx}_opt.th")
 
     def load_model(self, path, load_same_model=False, load_optimisers=False):
         if load_same_model:
@@ -175,6 +227,11 @@ class GailDiscriminator2(nn.Module):
         self.trunk.load_state_dict(th.load(f"{path}/discriminator_{agent_idx}.th",
             map_location=lambda storage, loc:storage))
         self.optimizer.load_state_dict(th.load(f"{path}/discriminator_{agent_idx}_opt.th",
+            map_location=lambda storage, loc: storage))
+        
+        self.dyn_discriminator.load_state_dict(th.load(f"{path}/dyn_discriminator_{agent_idx}.th",
+            map_location=lambda storage, loc:storage))
+        self.dyn_optimizer.load_state_dict(th.load(f"{path}/dyn_discriminator_{agent_idx}_opt.th",
             map_location=lambda storage, loc: storage))
 
 class BatchStorage:

@@ -13,7 +13,7 @@ from utils.mappo_utils.valuenorm import ValueNorm
 from utils.mappo_utils.separated_buffer import SeparatedReplayBuffer
 from utils.mappo_utils.util import check, update_linear_schedule
 import utils.mappo_utils.separated_buffer as sbuffer
-from learners.gail_learner import GailDiscriminator
+from learners.gail_learner2 import GailDiscriminator2
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -121,7 +121,7 @@ class IPPOLearner2:
             else: 
                 gail_input_dim = self.obs_shape + 1
 
-            self.gails = [GailDiscriminator(self.args, 
+            self.gails = [GailDiscriminator2(self.args, 
                                             input_dim=gail_input_dim, 
                                             hidden_dim=args.mlp_hidden_dim, 
                                             device=self.device, 
@@ -291,13 +291,15 @@ class IPPOLearner2:
         for _ in range(self.gail_epoch):
             expert_batch = self.gails[agent_id].expert_storage.get_random_batch(self.gail_batch_size) # change this function to partition current buffer into minibatches
             agent_batch = self.gails[agent_id].agent_storage.get_random_batch(self.gail_batch_size) # change this function to partition current buffer into minibatches
-            gail_total_loss, gail_grad_norm, gail_grad_pen, gail_policy_discr_pred, gail_expert_discr_pred = self.gails[agent_id].update(agent_batch, expert_batch)
+            # gail_total_loss, gail_grad_norm, gail_grad_pen, gail_policy_discr_pred, gail_expert_discr_pred = self.gails[agent_id].update(agent_batch, expert_batch)
+            gail_total_loss, gail_grad_norm, gail_grad_pen, gail_policy_discr_pred, gail_expert_discr_pred, gail_dyn_loss = self.gails[agent_id].update(agent_batch, expert_batch)
 
             train_info['gail_total_loss'] += gail_total_loss / n_gail_updates
             train_info['gail_grad_norm'] += gail_grad_norm / n_gail_updates
             train_info['gail_grad_pen'] += gail_grad_pen / n_gail_updates
             train_info['gail_policy_discr_pred'] += gail_policy_discr_pred / n_gail_updates
             train_info['gail_expert_discr_pred'] += gail_expert_discr_pred / n_gail_updates
+            train_info['gail_dyn_loss'] += gail_dyn_loss / n_gail_updates
         return train_info
 
 
@@ -333,6 +335,7 @@ class IPPOLearner2:
             'gail_grad_pen': 0.,
             'gail_policy_discr_pred': 0.,
             'gail_expert_discr_pred': 0.,
+            'gail_dyn_loss': 0.,
             'mixed_rew': 0.
             }
 
@@ -345,14 +348,13 @@ class IPPOLearner2:
             pred_rew = None
             if self.rew_type in  ["gail", "mixed"] or self.gail_obs_discr:
                 # predict reward 
-                pred_rew = self.gails[agent_id].predict_reward(obs=batch['obs'], 
-                    actions=None if self.args.gail_state_discrim else batch["actions"])
+                pred_rew, weights = self.gails[agent_id].predict_reward(obs=batch['obs'], actions=None if self.args.gail_state_discrim else batch["actions"])
                 train_info['gail_pred_rew'] += th.mean(pred_rew[:, :-1]).item() / self.n_agents
             # compute reward for ppo learner
             if self.rew_type == "gail":
-                rewards = pred_rew[:, :-1]
+                rewards = pred_rew[:, :-1] * weights[:, :-1]
             elif self.rew_type == "mixed":
-                rewards = pred_rew[:, :-1] * self.gail_rew_coef + batch["reward"][:, :-1]
+                rewards = pred_rew[:, :-1] * weights[:, :-1] * self.gail_rew_coef + batch["reward"][:, :-1]
                 train_info['mixed_rew'] += th.mean(rewards).item() / self.n_agents                    
             else:
                 rewards = batch["reward"][:, :-1]  # rewards are length T+1
@@ -435,6 +437,8 @@ class IPPOLearner2:
             if self.rew_type in  ["gail", "mixed"]:
                 th.save(self.gails[i].trunk.state_dict(), "{}/discriminator_{}.th".format(path, i))
                 th.save(self.gails[i].optimizer.state_dict(), "{}/discriminator_{}_opt.th".format(path, i))
+                th.save(self.gails[i].dyn_discriminator.state_dict(), "{}/dyn_discriminator_{}.th".format(path, i))
+                th.save(self.gails[i].dyn_optimizer.state_dict(), "{}/dyn_discriminator_{}_opt.th".format(path, i))
 
     def save_traj_data(self, root_path):
         for i in range(self.n_agents):
