@@ -6,10 +6,10 @@ from types import SimpleNamespace as SN
 
 # Define the maximum number of jobs for each account
 # max_job_nums = [4, 2, 2, 8]
-max_job_nums = [2, 8]
+max_job_nums = [2, 4]
 account_combinations = [
     # ["nexus", "tron", "medium"],      # 2 days, for qmix, 4 jobs max
-    ["cml-tokekar", "cml-dpart", "cml-medium"],     # 3 days, for ippo/dm2, 2 jobs max
+    # ["cml-tokekar", "cml-dpart", "cml-medium"],     # 3 days, for ippo/dm2, 2 jobs max
     # ["cml-tokekar", "cml-dpart", "cml-high"],     # 1.5 days, for qmix, 2 jobs max
     ["cml-tokekar", "cml-dpart", "cml-high_long"],    # 14 days, for ippo/dm2, 8 jobs max, but actually 2 jobs max due to resources
 ]
@@ -22,8 +22,9 @@ account_combinations = [
 #     "tau": [0.01, 200]
 # }
 parameters = {
-    "seed": [112358, 1285842, 78590, 119527, 122529],
-    # "seed": [78590, 119527, 122529],
+    # "seed": [112358, 1285842, 78590, 119527, 122529],
+    # "seed": [1285842, 78590, 119527, 122529],
+    "seed": [112358],
 }
 
 # root_dir = "/fs/nexus-scratch/peihong/dm2_results"
@@ -47,14 +48,40 @@ combinations = list(product(*param_values))
 # algo_name = "dm2"
 # python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 name='dm2'"
 
-algo_name = "dm2_sa"
-python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 gail_state_discrim=False name='dm2_sa'"
+# algo_name = "dm2_sa"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 gail_state_discrim=False name='dm2_sa'"
+
+# algo_name = "ours"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen'"
+
+# algo_name = "ours_cotrain"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6_cotrain --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen'"
+
+# map_name = "5m_vs_6m"
+
+# algo_name = "ours"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_3sv4z --alg-config=ippo with env_args.map_name=3s_vs_4z rew_type='mixed' update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen'"
+
+# algo_name = "ours_cotrain"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_3sv4z_cotrain --alg-config=ippo with env_args.map_name=3s_vs_4z rew_type='mixed' update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen'"
+
+# map_name = "3s_vs_4z"
+
+###### tune rew_weight
+# algo_name = "ours_rew0.2"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen'"
+
+algo_name = "ours_cotrain_rew0.2"
+python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6_cotrain --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen'"
+
+map_name = "5m_vs_6m"
+
 
 # Iterate over parameter combinations
 jobs_num = 0
 for combo in combinations:
     job_name = "__".join([f"{name}_{value}" for name, value in zip(param_names, combo)])
-    job_name = f"{algo_name}__{job_name}"
+    job_name = f"{algo_name}__{map_name}__{job_name}"
     param_dict = {key: value for key, value in zip(param_names, combo)}
     param = SN(**param_dict)
 
@@ -72,7 +99,7 @@ for combo in combinations:
     job_script_content = f'''#!/bin/bash
 #SBATCH --job-name={job_name}
 #SBATCH --output={root_dir}/slurm_logs/%x.%j.out
-#SBATCH --time=40:00:00
+#SBATCH --time=48:00:00
 #SBATCH --account={account}
 #SBATCH --partition={partition}
 #SBATCH --qos={qos}

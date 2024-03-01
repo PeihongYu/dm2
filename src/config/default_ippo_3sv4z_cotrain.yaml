@@ -54,9 +54,9 @@ save_agent_batches_interval: 1000000 # save agent batches after this many timest
 gail_mask_ally_feats: False
 gail_exp_eps: 1000
 gail_exp_use_same_data_idxs: True # if True, each agent gets same idx of expert data. Else, each agent gets offset expert data (see gail_learner.py)
-gail_exp_use_single_seed: False # if True, each agent uses same data path for expert data. Else, use a different seed of expert data per agent. 
+gail_exp_use_single_seed: True # if True, each agent uses same data path for expert data. Else, use a different seed of expert data per agent. 
 
-gail_data_paths: ["/fs/nexus-projects/Guided_MARL/dm2_demonstrations/ippo_3sv4z/ippo_sc2_baseline_seed=78590_01-23-20-41-57/5000520",  "/fs/nexus-projects/Guided_MARL/dm2_demonstrations/ippo_3sv4z/ippo_sc2_baseline_seed=112358_01-23-20-41-57/5000259", "/fs/nexus-projects/Guided_MARL/dm2_demonstrations/ippo_3sv4z/ippo_sc2_baseline_seed=119527_01-23-20-41-57/5000345"]
+gail_data_paths: ["/fs/nexus-projects/Guided_MARL/dm2_demonstrations/ippo_3sv4z/ippo_sc2_baseline_seed=119527_01-23-20-41-57/5000345"]
 gail_model_paths: []
 
 # --- Arguments for the algorithm

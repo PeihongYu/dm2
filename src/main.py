@@ -25,12 +25,12 @@ ex.captured_out_filter = apply_backspaces_and_linefeeds
 
 # results_path = os.path.join(dirname(dirname(abspath(__file__))), "results")
 # results_path = os.path.join("/scratch/cluster/clw4542/marl_results", "results")
-results_path = "/fs/nexus-scratch/peihong/dm2_results"
+results_path = f"/fs/nexus-projects/Guided_MARL/peihong_dm2_results"
 
 run_fcns = {
         "run_default": run_default,
         "run_ippo": run_ippo
-            }
+            } 
 
 @ex.main
 def my_main(_run, _config, _log):
@@ -57,7 +57,7 @@ def _get_config(params, arg_name, subfolder):
     if config_name is not None:
         with open(os.path.join(os.path.dirname(__file__), "config", subfolder, "{}.yaml".format(config_name)), "r") as f:
             try:
-                config_dict = yaml.load(f)
+                config_dict = yaml.load(f, Loader=yaml.FullLoader)
             except yaml.YAMLError as exc:
                 assert False, "{}.yaml error: {}".format(config_name, exc)
         return config_dict

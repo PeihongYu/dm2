@@ -57,7 +57,7 @@ gail_exp_use_single_seed: True # if True, each agent uses same data path for exp
 # gail data paths must be list of length 1 or length n_agents (1 gail data path per agent)
 
 # gail_data_paths: ["/fs/nexus-projects/Guided_MARL/manav_dm2_results/agents_batches/ippo_sc2__seed=112358_02-21-15-11-52/_eval"]
-gail_data_paths: ["/fs/nexus-projects/Guided_MARL/dm2_demonstrations/ippo_5v6/ippo_sc2_saved-batchsize=5000-ts=5m-concurrent-demos-diff-policies-DATAONLY_seed=92814_01-17-22-42-49/_eval"]
+gail_data_paths: ["/fs/nexus-projects/Guided_MARL/dm2_demonstrations/ippo_5v6/ippo_sc2_saved-batchsize=5005_seed=112358_03-06-21-12-41/5000052"]
 gail_model_paths: []
 
 # --- Arguments for the algorithm
