@@ -75,6 +75,7 @@ class GailDiscriminator2(nn.Module):
     def compute_grad_pen(self,
                          expert_in,
                          policy_in,
+                         is_dyn_discrim=False,
                          lambda_=10):
         alpha = th.rand(expert_in.size(0), 1)
         alpha = alpha.expand_as(expert_in).to(expert_in.device)
@@ -82,7 +83,10 @@ class GailDiscriminator2(nn.Module):
         mixup_data = alpha * expert_in + (1 - alpha) * policy_in
         mixup_data.requires_grad = True
 
-        disc = self.trunk(mixup_data)
+        if is_dyn_discrim:
+            disc = self.dyn_discriminator(mixup_data)
+        else:
+            disc = self.trunk(mixup_data)
         ones = th.ones(disc.size()).to(disc.device)
         grad = autograd.grad(
             outputs=disc,
@@ -104,6 +108,12 @@ class GailDiscriminator2(nn.Module):
         policy_disc_pred_all = 0
         expert_disc_pred_all = 0
         n = 0 
+
+        dyn_loss = 0
+        grad_dyn_norm_all = 0
+        grad_dyn_pen_all = 0
+        policy_dyn_disc_pred_all = 0
+        expert_dyn_disc_pred_all = 0
 
         pol_obs = th.cat([batch[i]['obs'] for i in range(len(batch))]) # shape (batch_size, ep_limit, obs_size)
         exp_obs = th.cat([expert_batch[i]['obs'] for i in range(len(expert_batch))]).to(self.device)
@@ -134,7 +144,7 @@ class GailDiscriminator2(nn.Module):
             th.zeros(policy_d.size()).to(self.device))
 
         gail_loss = expert_loss + policy_loss
-        grad_pen, grad_norm = self.compute_grad_pen(expert_in, policy_in)
+        grad_pen, grad_norm = self.compute_grad_pen(expert_in, policy_in, is_dyn_discrim=False)
 
         grad_norm_all += grad_norm.item()
         grad_pen_all += grad_pen.item()
@@ -181,13 +191,22 @@ class GailDiscriminator2(nn.Module):
             th.zeros(policy_dyn_d.size()).to(self.device))
 
         gail_dyn_loss = expert_dyn_loss + policy_dyn_loss
+        grad_dyn_pen, grad_dyn_norm = self.compute_grad_pen(expert_in, policy_in, is_dyn_discrim=True)
+
+        grad_dyn_norm_all += grad_dyn_norm.item()
+        grad_dyn_pen_all += grad_dyn_pen.item()
+        policy_dyn_disc_pred_all += th.mean(policy_dyn_d).item()
+        expert_dyn_disc_pred_all += th.mean(expert_dyn_d).item()
+        dyn_loss += (gail_dyn_loss + grad_dyn_pen).item()
 
         self.dyn_optimizer.zero_grad()
-        gail_dyn_loss.backward()
+        (gail_dyn_loss + grad_dyn_pen).backward()
         self.dyn_optimizer.step()
 
         return loss / n, grad_norm_all / n, grad_pen_all / n, \
-        policy_disc_pred_all / n, expert_disc_pred_all / n, gail_dyn_loss.item()
+        policy_disc_pred_all / n, expert_disc_pred_all / n, \
+        dyn_loss / n, grad_dyn_norm_all / n, grad_dyn_pen_all / n, \
+        policy_dyn_disc_pred_all / n, expert_dyn_disc_pred_all / n
 
     def predict_reward(self, obs, actions=None, gamma=1, update_rms=False):
         if actions is None:

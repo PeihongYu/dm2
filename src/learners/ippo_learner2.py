@@ -292,14 +292,19 @@ class IPPOLearner2:
             expert_batch = self.gails[agent_id].expert_storage.get_random_batch(self.gail_batch_size) # change this function to partition current buffer into minibatches
             agent_batch = self.gails[agent_id].agent_storage.get_random_batch(self.gail_batch_size) # change this function to partition current buffer into minibatches
             # gail_total_loss, gail_grad_norm, gail_grad_pen, gail_policy_discr_pred, gail_expert_discr_pred = self.gails[agent_id].update(agent_batch, expert_batch)
-            gail_total_loss, gail_grad_norm, gail_grad_pen, gail_policy_discr_pred, gail_expert_discr_pred, gail_dyn_loss = self.gails[agent_id].update(agent_batch, expert_batch)
+            gail_total_loss, gail_grad_norm, gail_grad_pen, gail_policy_discr_pred, gail_expert_discr_pred, \
+                gail_dyn_total_loss, gail_dyn_grad_norm, gail_dyn_grad_pen, gail_policy_dyn_discr_pred, gail_expert_dyn_discr_pred = self.gails[agent_id].update(agent_batch, expert_batch)
 
             train_info['gail_total_loss'] += gail_total_loss / n_gail_updates
             train_info['gail_grad_norm'] += gail_grad_norm / n_gail_updates
             train_info['gail_grad_pen'] += gail_grad_pen / n_gail_updates
             train_info['gail_policy_discr_pred'] += gail_policy_discr_pred / n_gail_updates
             train_info['gail_expert_discr_pred'] += gail_expert_discr_pred / n_gail_updates
-            train_info['gail_dyn_loss'] += gail_dyn_loss / n_gail_updates
+            train_info['gail_dyn_total_loss'] += gail_dyn_total_loss / n_gail_updates
+            train_info['gail_dyn_grad_norm'] += gail_dyn_grad_norm / n_gail_updates
+            train_info['gail_dyn_grad_pen'] += gail_dyn_grad_pen / n_gail_updates
+            train_info['gail_policy_dyn_discr_pred'] += gail_policy_dyn_discr_pred / n_gail_updates
+            train_info['gail_expert_dyn_discr_pred'] += gail_expert_dyn_discr_pred / n_gail_updates
         return train_info
 
 
@@ -335,7 +340,11 @@ class IPPOLearner2:
             'gail_grad_pen': 0.,
             'gail_policy_discr_pred': 0.,
             'gail_expert_discr_pred': 0.,
-            'gail_dyn_loss': 0.,
+            'gail_dyn_total_loss': 0.,
+            'gail_dyn_grad_norm': 0.,
+            'gail_dyn_grad_pen': 0.,
+            'gail_policy_dyn_discr_pred': 0.,
+            'gail_expert_dyn_discr_pred': 0.,
             'mixed_rew': 0.
             }
 
