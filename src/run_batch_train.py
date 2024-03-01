@@ -69,10 +69,10 @@ combinations = list(product(*param_values))
 
 ###### tune rew_weight
 # algo_name = "ours_rew0.2"
-# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen'"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen_rew0.2'"
 
 algo_name = "ours_cotrain_rew0.2"
-python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6_cotrain --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen'"
+python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6_cotrain --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen_rew0.2'"
 
 map_name = "5m_vs_6m"
 
