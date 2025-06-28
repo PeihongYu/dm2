@@ -9,5 +9,8 @@ REGISTRY["parallel"] = ParallelRunner
 from .ippo_episode_runner import IPPOEpisodeRunner
 REGISTRY["ippo"] = IPPOEpisodeRunner
 
+from .ippo_parallel_runner import IPPOParallelRunner
+REGISTRY["ippo_parallel"] = IPPOParallelRunner
+
 # from .ippo_iql_episode_runner import IPPOIQLEpisodeRunner
 # REGISTRY["ippo_iql"] = IPPOIQLEpisodeRunner

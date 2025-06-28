@@ -27,6 +27,8 @@ def get_tb_stats(logdir, desired_tag):
     """Gets newest events file from logdir and returns specified statistic and timesteps"""
     try:
         logpath = newest(logdir)
+        print(logpath)
+        # breakpoint()
         with open(logpath, 'rb') as f:
                         data = f.read()
     except FileNotFoundError:

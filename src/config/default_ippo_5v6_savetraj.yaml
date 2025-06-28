@@ -27,7 +27,7 @@ checkpoint_paths: []
 evaluate: True  # Evaluate model for test_nepisode episodes and quit (no training)
 save_replay: False # Saving the replay of the model loaded from checkpoint_path
 save_eval_traj: True  # Saving evaluation trajectories 
-local_results_path: "/scratch/cluster/clw4542/marl_results/ippo_5v6" 
+local_results_path: "/fs/nexus-projects/Guided_MARL/peihong_dm2_results" 
 
 # --- GAIL params ---
 rew_type: "env" # options: [gail, env, mixed] # train ippo+gail

@@ -58,3 +58,14 @@ class MultiAgentEnv(object):
                     "n_agents": self.n_agents,
                     "episode_limit": self.episode_limit}
         return env_info
+
+    def get_obs_info(self):
+        enemy_feats_dim = self.get_obs_enemy_feats_size()
+        ally_feats_dim = self.get_obs_ally_feats_size()
+        obs_info = {
+                "move_feats_dim": self.get_obs_move_feats_size(), 
+                "enemy_feats_dim": enemy_feats_dim[0] * enemy_feats_dim[1],
+                "ally_feats_dim": ally_feats_dim[0] * ally_feats_dim[1],
+                "own_feats_dim": self.get_obs_own_feats_size()
+                }
+        return obs_info

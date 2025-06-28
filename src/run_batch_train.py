@@ -6,12 +6,12 @@ from types import SimpleNamespace as SN
 
 # Define the maximum number of jobs for each account
 # max_job_nums = [4, 2, 2, 8]
-max_job_nums = [2, 4]
+max_job_nums = [4, 2]
 account_combinations = [
-    # ["nexus", "tron", "medium"],      # 2 days, for qmix, 4 jobs max
-    # ["cml-tokekar", "cml-dpart", "cml-medium"],     # 3 days, for ippo/dm2, 2 jobs max
+    ["nexus", "tron", "medium"],      # 2 days, for qmix, 4 jobs max
+    ["cml-tokekar", "cml-dpart", "cml-medium"],     # 3 days, for ippo/dm2, 2 jobs max
     # ["cml-tokekar", "cml-dpart", "cml-high"],     # 1.5 days, for qmix, 2 jobs max
-    ["cml-tokekar", "cml-dpart", "cml-high_long"],    # 14 days, for ippo/dm2, 8 jobs max, but actually 2 jobs max due to resources
+    # ["cml-tokekar", "cml-dpart", "cml-high_long"],    # 14 days, for ippo/dm2, 8 jobs max, but actually 2 jobs max due to resources
 ]
 
 # Define the parameters you want to iterate over
@@ -30,7 +30,7 @@ parameters = {
 # root_dir = "/fs/nexus-scratch/peihong/dm2_results"
 root_dir = f"/fs/nexus-projects/Guided_MARL/{os.getlogin()}_dm2_results"
 
-if os.getlogin() == "peihong":
+if os.getlogin() == "peihong": 
     smac_dir = "/fs/nexus-scratch/peihong/3rdparty/StarCraftII_2410"
 elif os.getlogin() == "manavx96":
     smac_dir = "/fs/nexus-scratch/manavx96/StarCraftII"
@@ -42,8 +42,10 @@ combinations = list(product(*param_values))
 # algo_name = "qmix"
 # python_command = "python src/main.py --env-config=sc2 --config=default --alg-config=qmix with env_args.map_name=5m_vs_6m t_max=10050000 name='qmix'"
 
-# algo_name = "ippo"
+algo_name = "ippo"
 # python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='env' update_gail=False t_max=10050000 name='ippo'"
+python_command = "python src/main.py --env-config=sc2 --config=default_ippo_3sv4z --alg-config=ippo with env_args.map_name=3s_vs_4z rew_type='env' update_gail=False t_max=10050000 name='ippo'"
+map_name = "3s_vs_4z"
 
 # algo_name = "dm2"
 # python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' update_gail=True t_max=10050000 name='dm2'"
@@ -68,13 +70,13 @@ combinations = list(product(*param_values))
 # map_name = "3s_vs_4z"
 
 ###### tune rew_weight
-# algo_name = "ours_rew0.2"
-# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen_rew0.2'"
+# algo_name = "ours_rew0.5"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6 --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.5 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_nonco_add_pen_rew0.5'"
 
-algo_name = "ours_cotrain_rew0.2"
-python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6_cotrain --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen_rew0.2'"
+# algo_name = "ours_cotrain_rew0.2"
+# python_command = "python src/main.py --env-config=sc2 --config=default_ippo_5v6_cotrain --alg-config=ippo with env_args.map_name=5m_vs_6m rew_type='mixed' gail_rew_coef=0.2 update_gail=True t_max=10050000 gail_state_discrim=False learner='ippo_learner2' name='ours_add_pen_rew0.2'"
 
-map_name = "5m_vs_6m"
+# map_name = "5m_vs_6m"
 
 
 # Iterate over parameter combinations
@@ -94,7 +96,7 @@ for combo in combinations:
             break
     jobs_num += 1
 
-    # Create a unique job script for each combination
+    # Create a unique job script for each combination 
     # note: change time accordingly
     job_script_content = f'''#!/bin/bash
 #SBATCH --job-name={job_name}
